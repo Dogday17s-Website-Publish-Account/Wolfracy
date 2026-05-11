@@ -62,19 +62,48 @@ const closeAdminLogin = document.getElementById('closeAdminLogin');
 const adminLoginForm = document.getElementById('adminLoginForm');
 const chatPanel = document.getElementById('chatPanel');
 const closeChat = document.getElementById('closeChat');
-const messageList = document.getElementById('messageList');
-const messageInput = document.getElementById('messageInput');
-const sendMessageBtn = document.getElementById('sendMessageBtn');
-const requestList = document.getElementById('requestList');
-const requestTitle = document.getElementById('requestTitle');
-const requestDescription = document.getElementById('requestDescription');
-const submitRequestBtn = document.getElementById('submitRequestBtn');
+
+// Request form elements
+const userName = document.getElementById('userName');
+const requestType = document.getElementById('requestType');
+const gameName = document.getElementById('gameName');
+const platform = document.getElementById('platform');
+const description = document.getElementById('description');
+
+// Tab elements
+const newRequestTab = document.getElementById('newRequestTab');
+const pendingTab = document.getElementById('pendingTab');
+const newRequestContent = document.getElementById('newRequestContent');
+const pendingContent = document.getElementById('pendingContent');
+const pendingRequests = document.getElementById('pendingRequests');
+
+// Request chat elements
+const requestChatContent = document.getElementById('requestChatContent');
+const backToPending = document.getElementById('backToPending');
+const requestChatTitle = document.getElementById('requestChatTitle');
+const requestChatMessages = document.getElementById('requestChatMessages');
+const requestChatInput = document.getElementById('requestChatInput');
+const requestSendBtn = document.getElementById('requestSendBtn');
+
+// Admin elements
+const requestsList = document.getElementById('requestsList');
+const requestsContainer = document.getElementById('requestsContainer');
+const adminChatMessages = document.getElementById('adminChatMessages');
+const adminChatInput = document.getElementById('adminChatInput');
+const adminSendBtn = document.getElementById('adminSendBtn');
+
+// Public chat elements
+const publicChatMessages = document.getElementById('publicChatMessages');
+const publicChatInput = document.getElementById('publicChatInput');
+const publicSendBtn = document.getElementById('publicSendBtn');
+
+// Admin login elements
 const adminUsername = document.getElementById('adminUsername');
 const adminPassword = document.getElementById('adminPassword');
-const adminLoginBtn = document.getElementById('adminLoginBtn');
-const requestItemsList = document.getElementById('requestItemsList');
-const adminMessagesList = document.getElementById('adminMessagesList');
-const clearDataBtn = document.getElementById('clearDataBtn');
+
+// Notification elements
+const notification = document.getElementById('notification');
+const notificationText = document.getElementById('notificationText');
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
@@ -85,26 +114,75 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 function initializeEventListeners() {
     // Navigation
-    requestsBtn.addEventListener('click', showRequestPopup);
-    chatBtn.addEventListener('click', showChatPanel);
-    adminBtn.addEventListener('click', showAdminLogin);
-    darkModeToggle.addEventListener('click', toggleDarkMode);
+    if (requestsBtn) requestsBtn.addEventListener('click', showRequestPopup);
+    if (chatBtn) chatBtn.addEventListener('click', showChatPanel);
+    if (adminBtn) adminBtn.addEventListener('click', showAdminLogin);
+    if (darkModeToggle) darkModeToggle.addEventListener('click', toggleDarkMode);
     
     // Request popup
-    closePopup.addEventListener('click', hideRequestPopup);
-    requestForm.addEventListener('submit', handleRequestSubmit);
+    if (closePopup) closePopup.addEventListener('click', hideRequestPopup);
+    if (requestForm) requestForm.addEventListener('submit', handleRequestSubmit);
+    
+    // Request type change
+    if (requestType) requestType.addEventListener('change', handleRequestTypeChange);
+    
+    // Tab switching
+    if (newRequestTab) newRequestTab.addEventListener('click', () => switchTab('newRequest'));
+    if (pendingTab) pendingTab.addEventListener('click', () => switchTab('pending'));
+    
+    // Request chat
+    if (backToPending) backToPending.addEventListener('click', closeRequestChat);
+    if (requestSendBtn) requestSendBtn.addEventListener('click', sendRequestMessage);
+    if (requestChatInput) requestChatInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') sendRequestMessage();
+    });
     
     // Admin panel
-    closeAdmin.addEventListener('click', hideAdminPanel);
-    adminLoginForm.addEventListener('submit', handleAdminLogin);
-    clearDataBtn.addEventListener('click', clearAllData);
-    
-    // Chat
-    closeChat.addEventListener('click', hideChatPanel);
-    sendMessageBtn.addEventListener('click', sendMessage);
-    messageInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') sendMessage();
+    if (closeAdmin) closeAdmin.addEventListener('click', hideAdminPanel);
+    if (adminLoginForm) adminLoginForm.addEventListener('submit', handleAdminLogin);
+    if (adminSendBtn) adminSendBtn.addEventListener('click', sendAdminMessage);
+    if (adminChatInput) adminChatInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') sendAdminMessage();
     });
+    
+    // Public chat
+    if (closeChat) closeChat.addEventListener('click', hideChatPanel);
+    if (publicSendBtn) publicSendBtn.addEventListener('click', sendPublicMessage);
+    if (publicChatInput) publicChatInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') sendPublicMessage();
+    });
+}
+
+// Request type change handler
+function handleRequestTypeChange() {
+    if (!requestType || !gameNameGroup || !platformGroup) return;
+    
+    if (requestType.value === 'game') {
+        gameNameGroup.style.display = 'block';
+        platformGroup.style.display = 'none';
+    } else {
+        gameNameGroup.style.display = 'none';
+        platformGroup.style.display = 'block';
+    }
+}
+
+// Tab switching
+function switchTab(tab) {
+    // Remove active class from all tabs and content
+    const allTabs = [newRequestTab, pendingTab];
+    const allContent = [newRequestContent, pendingContent];
+    
+    allTabs.forEach(t => t?.classList.remove('active'));
+    allContent.forEach(c => c?.classList.remove('active'));
+    
+    if (tab === 'newRequest') {
+        newRequestTab?.classList.add('active');
+        newRequestContent?.classList.add('active');
+    } else {
+        pendingTab?.classList.add('active');
+        pendingContent?.classList.add('active');
+        renderPendingRequests();
+    }
 }
 
 // Request functions
@@ -120,115 +198,179 @@ function hideRequestPopup() {
 async function handleRequestSubmit(e) {
     e.preventDefault();
     
-    const title = requestTitle.value.trim();
-    const description = requestDescription.value.trim();
+    const name = userName?.value?.trim() || 'Guest';
+    const type = requestType?.value || 'game';
+    const game = gameName?.value?.trim() || '';
+    const plat = platform?.value || '';
+    const desc = description?.value?.trim() || '';
     
-    if (!title || !description) {
+    if (!desc) {
         alert('Please fill in all fields');
         return;
     }
     
     const newRequest = {
         id: Date.now(),
-        title,
-        description,
+        name: name,
+        type: type,
+        gameName: game,
+        platform: plat,
+        description: desc,
         status: 'pending',
         createdAt: new Date().toISOString()
     };
     
     requests.push(newRequest);
     await saveData();
-    updateRequestDisplay();
+    switchTab('pending'); // Show pending requests
     hideRequestPopup();
     
-    // Show success message
     showNotification('Request submitted successfully!');
 }
 
-function updateRequestDisplay() {
-    if (requestItemsList) {
-        requestItemsList.innerHTML = '';
-        requests.forEach(request => {
-            const item = createRequestItem(request);
-            requestItemsList.appendChild(item);
-        });
+function renderPendingRequests() {
+    if (!pendingRequests) return;
+    
+    const userRequests = requests.filter(r => r.name === (localStorage.getItem('wolfracy_user_name') || 'Guest'));
+    
+    if (userRequests.length === 0) {
+        pendingRequests.innerHTML = '<p class="no-pending">No pending requests</p>';
+        return;
     }
+    
+    pendingRequests.innerHTML = '';
+    userRequests.forEach(request => {
+        const item = createRequestItem(request);
+        item.addEventListener('click', () => openRequestChat(request));
+        pendingRequests.appendChild(item);
+    });
 }
 
 function createRequestItem(request) {
     const div = document.createElement('div');
     div.className = 'request-item';
     div.innerHTML = `
-        <h4>${request.title}</h4>
+        <h4>${request.type === 'game' ? request.gameName : request.platform + ' Account'}</h4>
         <p>${request.description}</p>
         <small>Status: ${request.status} | ${new Date(request.createdAt).toLocaleDateString()}</small>
     `;
     return div;
 }
 
-// Chat functions
+// Request chat functions
+let currentRequestChat = null;
+
+function openRequestChat(request) {
+    currentRequestChat = request;
+    
+    if (requestChatContent) requestChatContent.style.display = 'block';
+    if (pendingContent) pendingContent.style.display = 'none';
+    
+    if (requestChatTitle) {
+        requestChatTitle.textContent = request.type === 'game' ? request.gameName : request.platform + ' Account';
+    }
+    
+    loadRequestMessages(request.id);
+}
+
+function closeRequestChat() {
+    currentRequestChat = null;
+    if (requestChatContent) requestChatContent.style.display = 'none';
+    if (pendingContent) pendingContent.style.display = 'block';
+}
+
+function loadRequestMessages(requestId) {
+    if (!requestChatMessages) return;
+    requestChatMessages.innerHTML = '';
+    
+    const requestMessages = messages.filter(m => m.requestId === requestId);
+    requestMessages.forEach(message => {
+        const item = createMessageItem(message);
+        requestChatMessages.appendChild(item);
+    });
+}
+
+async function sendRequestMessage() {
+    const text = requestChatInput?.value?.trim();
+    if (!text || !currentRequestChat) return;
+    
+    const newMessage = {
+        id: Date.now(),
+        requestId: currentRequestChat.id,
+        sender: 'User',
+        text,
+        timestamp: new Date().toISOString()
+    };
+    
+    messages.push(newMessage);
+    await saveData();
+    loadRequestMessages(currentRequestChat.id);
+    if (requestChatInput) requestChatInput.value = '';
+}
+
+// Public chat functions
 function showChatPanel() {
     chatPanel.classList.add('active');
-    updateChatDisplay();
+    updatePublicChatDisplay();
 }
 
 function hideChatPanel() {
     chatPanel.classList.remove('active');
 }
 
-function updateChatDisplay() {
-    if (messageList) {
-        messageList.innerHTML = '';
-        publicMessages.forEach(message => {
-            const item = createMessageItem(message);
-            messageList.appendChild(item);
-        });
-        messageList.scrollTop = messageList.scrollHeight;
-    }
+function updatePublicChatDisplay() {
+    if (!publicChatMessages) return;
+    
+    publicChatMessages.innerHTML = '';
+    publicMessages.forEach(message => {
+        const item = createMessageItem(message);
+        publicChatMessages.appendChild(item);
+    });
+    publicChatMessages.scrollTop = publicChatMessages.scrollHeight;
 }
 
 function createMessageItem(message) {
     const div = document.createElement('div');
     div.className = 'message-item';
     div.innerHTML = `
-        <strong>${message.username}:</strong> ${message.text}
+        <strong>${message.sender || message.username}:</strong> ${message.text}
         <small>${new Date(message.timestamp).toLocaleTimeString()}</small>
     `;
     return div;
 }
 
-async function sendMessage() {
-    const text = messageInput.value.trim();
+async function sendPublicMessage() {
+    const text = publicChatInput?.value?.trim();
     if (!text) return;
     
     const newMessage = {
         id: Date.now(),
-        username: currentUser ? currentUser.username : 'Guest',
+        username: localStorage.getItem('wolfracy_user_name') || 'Guest',
         text,
         timestamp: new Date().toISOString()
     };
     
     publicMessages.push(newMessage);
     await saveData();
-    updateChatDisplay();
-    messageInput.value = '';
+    updatePublicChatDisplay();
+    if (publicChatInput) publicChatInput.value = '';
 }
 
 // Admin functions
 function showAdminLogin() {
-    adminLoginPopup.classList.add('active');
+    adminLoginPopup?.classList.add('active');
 }
 
 function hideAdminLogin() {
-    adminLoginPopup.classList.remove('active');
-    adminLoginForm.reset();
+    adminLoginPopup?.classList.remove('active');
+    adminLoginForm?.reset();
 }
 
 async function handleAdminLogin(e) {
     e.preventDefault();
     
-    const username = adminUsername.value.trim();
-    const password = adminPassword.value.trim();
+    const username = adminUsername?.value?.trim();
+    const password = adminPassword?.value?.trim();
     
     // Simple admin check (in production, use proper authentication)
     if (username === 'admin' && password === 'password') {
@@ -241,38 +383,105 @@ async function handleAdminLogin(e) {
 }
 
 function showAdminPanel() {
-    adminPanel.classList.add('active');
+    adminPanel?.classList.add('active');
     updateAdminDisplay();
 }
 
 function hideAdminPanel() {
-    adminPanel.classList.remove('active');
+    adminPanel?.classList.remove('active');
 }
 
 function updateAdminDisplay() {
-    if (requestItemsList) {
-        updateRequestDisplay();
+    if (requestsContainer) {
+        renderRequests();
     }
-    if (adminMessagesList) {
-        adminMessagesList.innerHTML = '';
-        messages.forEach(message => {
-            const item = createMessageItem(message);
-            adminMessagesList.appendChild(item);
-        });
+    if (adminChatMessages) {
+        renderAdminMessages();
     }
 }
 
-async function clearAllData() {
-    if (confirm('Are you sure you want to clear all data?')) {
-        requests = [];
-        messages = [];
-        publicMessages = [];
-        await saveData();
-        updateRequestDisplay();
-        updateChatDisplay();
-        updateAdminDisplay();
-        showNotification('All data cleared');
+function renderRequests() {
+    if (!requestsContainer) return;
+    
+    requestsContainer.innerHTML = '';
+    requests.forEach(request => {
+        const item = createAdminRequestItem(request);
+        requestsContainer.appendChild(item);
+    });
+}
+
+function createAdminRequestItem(request) {
+    const div = document.createElement('div');
+    div.className = 'admin-request-item';
+    div.innerHTML = `
+        <h4>${request.type === 'game' ? request.gameName : request.platform + ' Account'}</h4>
+        <p><strong>From:</strong> ${request.name}</p>
+        <p><strong>Description:</strong> ${request.description}</p>
+        <p><strong>Status:</strong> ${request.status}</p>
+        <small>${new Date(request.createdAt).toLocaleString()}</small>
+        <button onclick="selectRequest(${JSON.stringify(request).replace(/"/g, '&quot;')})">Respond</button>
+        <button onclick="deleteRequest(${request.id})">Delete</button>
+    `;
+    return div;
+}
+
+function renderAdminMessages() {
+    if (!adminChatMessages) return;
+    
+    adminChatMessages.innerHTML = '';
+    messages.forEach(message => {
+        const item = createMessageItem(message);
+        adminChatMessages.appendChild(item);
+    });
+}
+
+function selectRequest(request) {
+    if (!adminChatInput) return;
+    
+    adminChatInput.dataset.requestId = request.id;
+    adminChatInput.placeholder = `Responding to: ${request.type === 'game' ? request.gameName : request.platform + ' Account'}`;
+    
+    // Show request details
+    if (adminChatMessages) {
+        adminChatMessages.innerHTML = `
+            <div class="request-details">
+                <h4>Request Details</h4>
+                <p><strong>From:</strong> ${request.name}</p>
+                <p><strong>Type:</strong> ${request.type}</p>
+                <p><strong>Description:</strong> ${request.description}</p>
+            </div>
+        `;
     }
+}
+
+async function deleteRequest(requestId) {
+    if (!confirm('Are you sure you want to delete this request?')) return;
+    
+    requests = requests.filter(r => r.id !== requestId);
+    await saveData();
+    renderRequests();
+    showNotification('Request deleted');
+}
+
+async function sendAdminMessage() {
+    const text = adminChatInput?.value?.trim();
+    const requestId = adminChatInput?.dataset?.requestId;
+    
+    if (!text || !requestId) return;
+    
+    const newMessage = {
+        id: Date.now(),
+        requestId: parseInt(requestId),
+        sender: 'Admin',
+        text,
+        timestamp: new Date().toISOString()
+    };
+    
+    messages.push(newMessage);
+    await saveData();
+    
+    if (adminChatInput) adminChatInput.value = '';
+    renderAdminMessages();
 }
 
 // Dark mode
