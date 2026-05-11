@@ -1,0 +1,20 @@
+[
+    {
+        "id": 1,
+        "username": "Gamer123",
+        "text": "Hey everyone! Anyone got good game recommendations?",
+        "timestamp": "2024-01-15T14:30:00Z"
+    },
+    {
+        "id": 2,
+        "username": "ProPlayer",
+        "text": "Try Cyberpunk 2077, it's amazing!",
+        "timestamp": "2024-01-15T14:32:00Z"
+    },
+    {
+        "id": 3,
+        "username": "Newbie",
+        "text": "Thanks! I'll check it out",
+        "timestamp": "2024-01-15T14:35:00Z"
+    }
+]
