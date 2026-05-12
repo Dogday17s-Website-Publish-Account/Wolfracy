@@ -25,7 +25,7 @@ async function executeQuery(operation, params = []) {
         }
         
         const result = await response.json();
-        return result.rows || [];
+        return result.rows || result || [];
     } catch (error) {
         console.error('Database error:', error);
         return [];
