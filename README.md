@@ -1,6 +1,6 @@
 # Wolfracy
 
-Dogracy web application with automatic URL redirection.
+Wolfracy web application with automatic URL redirection.
 
 ## Features
 - Node.js server
